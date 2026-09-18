@@ -35,13 +35,13 @@ function buildNewOrderMessage(item, stockAfter) {
 // สร้างข้อความแจ้งเตือน "สต๊อกใกล้หมด" (เกณฑ์ <= 5 ชิ้น)
 const LOW_STOCK_THRESHOLD = 5;
 function buildLowStockMessage(item, stockAfter) {
-  return (
-    `🚨 <b>[เตือนภัย] สต๊อกสินค้าใกล้หมด!</b>\n` +
-    `- สินค้า: ${item.name}\n` +
-    `- คงเหลือเพียง: ${stockAfter} ชิ้น\n` +
-    `⚠️ กรุณาเติมสต๊อกสินค้าด่วน!`
-  );
-}
+    return (
+      `- สินค้า: ${item.name}\n` +
+      `- คงเหลือเพียง: ${stockAfter} ชิ้น\n` +
+      `⚠️ กรุณาเติมสต็อกด่วน!`
+    );
+  }
+
   // อัปเดต stock ของสินค้าทีละรายการ
   for (const item of cart) {
     const newStock = item.stock - item.quantity;
@@ -57,11 +57,10 @@ function buildLowStockMessage(item, stockAfter) {
       return;
     }
 
-    // --- เพิ่มใหม่: แจ้งเตือน Telegram หลังตัดสต๊อกสำเร็จ (ไม่บล็อกการทำงานหลัก) ---
+    // --- เพิ่มใหม่: แจ้งเตือน Telegram หลังตัดสต็อกสำเร็จ (ไม่บล็อกการทำงานหลัก) ---
     sendTelegramNotification(buildNewOrderMessage(item, newStock));
 
     if (newStock <= LOW_STOCK_THRESHOLD) {
       sendTelegramNotification(buildLowStockMessage(item, newStock));
     }
-    // --- จบส่วนที่เพิ่มใหม่ ---
-  } // ปิดลูป
+  }
