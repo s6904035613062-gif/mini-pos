@@ -34,7 +34,9 @@ function buildNewOrderMessage(item, stockAfter) {
 
 // สร้างข้อความแจ้งเตือน "สต๊อกใกล้หมด" (เกณฑ์ <= 5 ชิ้น)
 const LOW_STOCK_THRESHOLD = 5;
-function buildLowStockMessage(item, stockAfter) {
+export default function SellPage() {
+
+  function buildLowStockMessage(item, stockAfter) {
     return (
       `- สินค้า: ${item.name}\n` +
       `- คงเหลือเพียง: ${stockAfter} ชิ้น\n` +
@@ -42,25 +44,29 @@ function buildLowStockMessage(item, stockAfter) {
     );
   }
 
-  // อัปเดต stock ของสินค้าทีละรายการ
-  for (const item of cart) {
-    const newStock = item.stock - item.quantity;
-    const { error: stockError } = await supabase
-      .from('products')
-      .update({ stock: newStock })
-      .eq('id', item.productId);
+  const handleSell = async () => {
+    // อัปเดต stock ของสินค้าทีละรายการ
+    for (const item of cart) {
+      const newStock = item.stock - item.quantity;
+      const { error: stockError } = await supabase
+        .from('products')
+        .update({ stock: newStock })
+        .eq('id', item.productId);
 
-    if (stockError) {
-      setError(`บันทึกการขายสำเร็จ แต่ปรับสต็อก "${item.name}" ไม่สำเร็จ: ${stockError.message}`);
-      setSubmitting(false);
-      fetchProducts();
-      return;
+      if (stockError) {
+        setError(`บันทึกการขายสำเร็จ แต่ปรับสต็อก "${item.name}" ไม่สำเร็จ: ${stockError.message}`);
+        setSubmitting(false);
+        fetchProducts();
+        return;
+      }
+
+      // --- เพิ่มใหม่: แจ้งเตือน Telegram หลังตัดสต็อกสำเร็จ ---
+      sendTelegramNotification(buildNewOrderMessage(item, newStock));
+
+      if (newStock <= LOW_STOCK_THRESHOLD) {
+        sendTelegramNotification(buildLowStockMessage(item, newStock));
+      }
     }
+  };
 
-    // --- เพิ่มใหม่: แจ้งเตือน Telegram หลังตัดสต็อกสำเร็จ (ไม่บล็อกการทำงานหลัก) ---
-    sendTelegramNotification(buildNewOrderMessage(item, newStock));
-
-    if (newStock <= LOW_STOCK_THRESHOLD) {
-      sendTelegramNotification(buildLowStockMessage(item, newStock));
-    }
-  }
+}
