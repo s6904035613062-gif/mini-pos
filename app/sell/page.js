@@ -119,8 +119,6 @@ export default function SellPage() {
   }
 
   // ===== ฟังก์ชันส่งข้อความแจ้งเตือนเข้า Telegram =====
-  // ทำงานแบบ async/try-catch เสมอ และไม่ throw error ออกไป
-  // เพื่อไม่ให้กระทบ flow การขายหลัก แม้ Telegram API มีปัญหา
   async function sendTelegramNotification(messageText) {
     if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
       console.warn('Telegram config ไม่ครบ ข้ามการแจ้งเตือน');
@@ -143,12 +141,10 @@ export default function SellPage() {
         console.error('Telegram API ตอบกลับผิดพลาด:', errData);
       }
     } catch (err) {
-      // ไม่ throw ต่อ เพื่อไม่ให้ระบบขายขัดข้อง
       console.error('ส่ง Telegram notification ไม่สำเร็จ:', err);
     }
   }
 
-  // สร้างข้อความแจ้งเตือน Order ใหม่
   function buildNewOrderMessage(item, newStock) {
     const now = new Date().toLocaleString('th-TH', {
       dateStyle: 'medium',
@@ -164,7 +160,6 @@ export default function SellPage() {
     );
   }
 
-  // สร้างข้อความแจ้งเตือนสต๊อกเหลือน้อย
   function buildLowStockMessage(item, newStock) {
     return (
       `🚨 <b>[เตือนภัย] สต๊อกสินค้าใกล้หมด!</b>\n` +
@@ -201,7 +196,6 @@ export default function SellPage() {
       return;
     }
 
-    // อัปเดต stock ทีละรายการ พร้อมส่งแจ้งเตือน Telegram หลังตัดสต๊อกสำเร็จ
     for (const item of cart) {
       const newStock = item.stock - item.quantity;
       const { error: stockError } = await supabase
@@ -216,11 +210,8 @@ export default function SellPage() {
         return;
       }
 
-      // งานที่ 1: แจ้งเตือน Order เข้า (ไม่ต้อง await แบบบล็อก เพื่อไม่ให้ delay UI
-      // แต่ครอบ try-catch ไว้แล้วใน sendTelegramNotification เอง)
       sendTelegramNotification(buildNewOrderMessage(item, newStock));
 
-      // งานที่ 2: เช็คสต๊อกเหลือน้อย ถ้าเข้าเกณฑ์ให้ยิงข้อความเตือนภัยแยกอีก 1 ข้อความ
       if (newStock <= LOW_STOCK_THRESHOLD) {
         sendTelegramNotification(buildLowStockMessage(item, newStock));
       }
