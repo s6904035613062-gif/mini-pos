@@ -3,9 +3,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 
-// อ่านค่า config ของ Telegram จาก environment variables
-const TELEGRAM_BOT_TOKEN = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID;
 const LOW_STOCK_THRESHOLD = 5; // เกณฑ์แจ้งเตือนสต๊อกเหลือน้อย
 
 export default function SellPage() {
@@ -118,32 +115,23 @@ export default function SellPage() {
     setCart([]);
   }
 
-  // ===== ฟังก์ชันส่งข้อความแจ้งเตือนเข้า Telegram =====
+  // ===== ฟังก์ชันส่งข้อความแจ้งเตือนเข้า Telegram ผ่าน API Route ของเราเอง =====
   // ทำงานแบบ async/try-catch เสมอ และไม่ throw error ออกไป
   // เพื่อไม่ให้กระทบ flow การขายหลัก แม้ Telegram API มีปัญหา
   async function sendTelegramNotification(messageText) {
-    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-      console.warn('Telegram config ไม่ครบ ข้ามการแจ้งเตือน');
-      return;
-    }
     try {
-      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-      const response = await fetch(url, {
+      const response = await fetch('/api/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: messageText,
-          parse_mode: 'HTML',
-        }),
+        body: JSON.stringify({ message: messageText }),
       });
 
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
-        console.error('Telegram API ตอบกลับผิดพลาด:', errData);
+        console.error('ส่งแจ้งเตือน Telegram ไม่สำเร็จ:', errData);
       }
     } catch (err) {
-      console.error('ส่ง Telegram notification ไม่สำเร็จ:', err);
+      console.error('เรียก API แจ้งเตือน Telegram ไม่สำเร็จ:', err);
     }
   }
 
